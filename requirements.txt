@@ -2,13 +2,6 @@ fastapi
 uvicorn
 requests
 dnspython
-python-whois
-
 fpdf
 httpx
 pydantic
-mangum
-
-
-
-

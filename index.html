@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Talos Scanner | Next-Gen Security</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1 class="logo">TALOS SCANNER</h1>
+            <p class="subtitle">Inteligência de ameaças em tempo real com análise comportamental e sandbox.</p>
+        </header>
+
+        <div class="glass-panel search-wrapper">
+            <input type="text" id="urlInput" class="search-box" placeholder="Cole uma URL suspeita (ex: http://exemplo.com)...">
+            <button class="btn-scan" onclick="analyzeUrl()" id="scanBtn">ESCANEAR</button>
+        </div>
+
+        <div class="loader" id="loader"></div>
+
+        <div id="results-area">
+            
+            <div class="glass-panel result-card">
+                <div class="verdict-header">
+                    <div>
+                        <small style="color:var(--text-muted); display:block; margin-bottom:4px;">VEREDITO FINAL</small>
+                        <h2 id="verdictText">---</h2>
+                    </div>
+                    <div id="verdictBadge" class="verdict-badge">---</div>
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="metric-item">
+                        <div class="metric-label">Risk Score</div>
+                        <div class="metric-val" id="riskScore">0/100</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Segurança</div>
+                        <div class="metric-val" id="safetyScore">0%</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Latência</div>
+                        <div class="metric-val" id="latencyVal">---</div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 1rem;">
+                    <h3 style="font-size: 1.1rem; margin-bottom: 1rem;">🔍 Detalhes da Infraestrutura</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9rem; color: #ccc;">
+                        <div>IP: <span id="ipVal" style="color:#fff;">---</span></div>
+                        <div>País: <span id="countryVal" style="color:#fff;">---</span></div>
+                        <div>Provedor: <span id="asnVal" style="color:#fff;">---</span></div>
+                        <div>SSL: <span id="sslVal" style="color:#fff;">---</span></div>
+                    </div>
+                </div>
+
+                <div id="riskContainer">
+                    <h3 style="font-size: 1.1rem; margin-top: 1.5rem;">⚠️ Fatores de Risco</h3>
+                    <ul class="risk-list" id="riskList">
+                        </ul>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div class="glass-panel screenshot-box">
+                    <img id="sandboxImg" src="" alt="Sandbox Screenshot" style="display: none;">
+                    <div id="noScreenshot" style="display:flex; height:100%; align-items:center; justify-content:center; color:#555;">
+                        Aguardando Scan...
+                    </div>
+                </div>
+
+                <div class="glass-panel" style="padding: 1.5rem;">
+                    <h4 style="margin-bottom: 1rem;">Ações</h4>
+                    <button class="download-btn" onclick="downloadReport()">
+                        <i data-lucide="file-down"></i> Baixar Relatório PDF
+                    </button>
+                    <button class="download-btn" style="margin-top: 10px;" onclick="window.location.reload()">
+                        <i data-lucide="refresh-cw"></i> Nova Análise
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Inicializa ícones
+        lucide.createIcons();
+
+        let lastAnalysisData = null; // Guarda o JSON para o PDF
+
+        async function analyzeUrl() {
+            const url = document.getElementById('urlInput').value;
+            const btn = document.getElementById('scanBtn');
+            const loader = document.getElementById('loader');
+            const resultsArea = document.getElementById('results-area');
+
+            if (!url) return alert("Por favor, insira uma URL.");
+
+            // Reset UI
+            resultsArea.classList.remove('active');
+            btn.disabled = true;
+            btn.innerText = "ANALISANDO...";
+            loader.style.display = 'block';
+
+            try {
+                // Chama seu Backend (FastAPI deve estar rodando na porta 8000)
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url })
+                });
+
+                const data = await response.json();
+                lastAnalysisData = data; // Salva para PDF
+
+                if (data.error || data.error_global) {
+                    alert("Erro: " + (data.error || data.error_global));
+                    return;
+                }
+
+                // --- POPULAR DADOS NA TELA ---
+                
+                // 1. Veredito e Scores
+                const final = data.final_analysis;
+                const score = final.score;
+                const verdict = final.verdict;
+
+                document.getElementById('riskScore').innerText = score + "/100";
+                document.getElementById('safetyScore').innerText = final.safety_score + "%";
+                document.getElementById('verdictText').innerText = verdict.split('(')[0].trim();
+                
+                // Cores do Badge
+                const badge = document.getElementById('verdictBadge');
+                badge.innerText = score > 90 ? "CRÍTICO" : score > 40 ? "SUSPEITO" : "SEGURO";
+                badge.className = "verdict-badge " + (score > 90 ? "verdict-MALICIOUS" : score > 40 ? "verdict-SUSPICIOUS" : "verdict-SAFE");
+                
+                // Muda a cor do Score baseado no risco
+                const scoreEl = document.getElementById('riskScore');
+                scoreEl.style.color = score > 70 ? "var(--danger)" : score > 30 ? "var(--warning)" : "var(--safe)";
+
+                // 2. Infraestrutura
+                const infra = data["3_infrastructure"] || {};
+                const geo = infra.geolocation || {};
+                const ssl = data["4_ssl_check"] || {};
+                const hops = data["2_redirects"] || {};
+
+                document.getElementById('ipVal').innerText = geo.ip || "N/A";
+                document.getElementById('countryVal').innerText = geo.country || "N/A";
+                document.getElementById('asnVal').innerText = (geo.network_name || "N/A").substring(0, 20);
+                document.getElementById('sslVal').innerText = ssl.is_valid ? "Válido" : "Inválido";
+                
+                // Latência do último salto
+                if (hops.final_hop) {
+                    document.getElementById('latencyVal').innerText = hops.final_hop.latency_ms + "ms";
+                }
+
+                // 3. Fatores de Risco (Lista)
+                const list = document.getElementById('riskList');
+                list.innerHTML = "";
+                const risks = final.risk_factors || [];
+                
+                if (risks.length === 0) {
+                    list.innerHTML = "<li style='border-color:var(--safe); background:rgba(0,255,136,0.05); color:var(--safe)'>Nenhum risco evidente detectado.</li>";
+                } else {
+                    risks.forEach(r => {
+                        const li = document.createElement('li');
+                        li.innerText = r;
+                        list.appendChild(li);
+                    });
+                }
+
+                // 4. Sandbox Screenshot
+                const sandbox = data["8_sandbox"] || {};
+                const img = document.getElementById('sandboxImg');
+                const noImg = document.getElementById('noScreenshot');
+
+                if (sandbox.screenshot_base64) {
+                    img.src = sandbox.screenshot_base64;
+                    img.style.display = 'block';
+                    noImg.style.display = 'none';
+                } else {
+                    img.style.display = 'none';
+                    noImg.style.display = 'flex';
+                    noImg.innerText = "Screenshot Indisponível";
+                }
+
+                // Mostra a UI
+                resultsArea.classList.add('active');
+
+            } catch (err) {
+                console.error(err);
+                alert("Falha ao conectar com o servidor Talos. Verifique se o Python está rodando.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "ESCANEAR";
+                loader.style.display = 'none';
+            }
+        }
+
+        async function downloadReport() {
+            if (!lastAnalysisData) return alert("Faça uma análise primeiro.");
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/report/pdf', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(lastAnalysisData)
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = "Talos_Report.pdf";
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                } else {
+                    alert("Erro ao gerar PDF");
+                }
+            } catch (e) {
+                alert("Erro no download: " + e);
+            }
+        }
+    </script>
+</body>
+</html>
