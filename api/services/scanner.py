@@ -17,7 +17,11 @@ def calculate_entropy(text):
     return -sum(count/lns * math.log(count/lns, 2) for count in p.values())
 
 def get_infrastructure(hostname):
+    if not hostname:
+        return {"dns": {}, "whois": {}, "geo": {}}
+    
     data = {"dns": {}, "whois": {}, "geo": {}}
+    
     try:
         a_records = dns.resolver.resolve(hostname, 'A')
         data["dns"]["a"] = [r.to_text() for r in a_records]
@@ -25,32 +29,45 @@ def get_infrastructure(hostname):
         
         # AbuseIPDB Check (Simplificado)
         if ABUSEIPDB_KEY:
-            headers = {'Key': ABUSEIPDB_KEY, 'Accept': 'application/json'}
-            r = requests.get('https://api.abuseipdb.com/api/v2/check', 
-                             headers=headers, params={'ipAddress': ip, 'maxAgeInDays': '90'}, timeout=3)
-            if r.status_code == 200:
-                data["geo"] = r.json().get('data', {})
-    except:
-        pass
+            try:
+                headers = {'Key': ABUSEIPDB_KEY, 'Accept': 'application/json'}
+                r = requests.get('https://api.abuseipdb.com/api/v2/check', 
+                                 headers=headers, params={'ipAddress': ip, 'maxAgeInDays': '90'}, timeout=5)
+                if r.status_code == 200:
+                    data["geo"] = r.json().get('data', {})
+            except Exception as e:
+                print(f"Erro AbuseIPDB: {e}")
+    except Exception as e:
+        print(f"Erro DNS: {e}")
     
     try:
         w = whois.whois(hostname)
-        data["whois"]["org"] = w.org
-        data["whois"]["creation_date"] = str(w.creation_date[0] if isinstance(w.creation_date, list) else w.creation_date)
-    except:
-        pass
+        if w:
+            data["whois"]["org"] = str(w.org) if w.org else "N/A"
+            if w.creation_date:
+                creation = w.creation_date[0] if isinstance(w.creation_date, list) else w.creation_date
+                data["whois"]["creation_date"] = str(creation)
+    except Exception as e:
+        print(f"Erro WHOIS: {e}")
+    
     return data
 
 def check_ssl(hostname):
+    if not hostname:
+        return {"valid": False, "error": "Hostname inválido"}
+    
     ctx = ssl.create_default_context()
     try:
-        with socket.create_connection((hostname, 443), timeout=3) as sock:
+        with socket.create_connection((hostname, 443), timeout=5) as sock:
             with ctx.wrap_socket(sock, server_hostname=hostname) as ssock:
                 cert = ssock.getpeercert()
-                # Lógica simplificada de validade
-                return {"valid": True, "issuer": dict(x[0] for x in cert['issuer']).get('commonName', '')}
-    except:
-        return {"valid": False, "error": "SSL Failed"}
+                issuer_dict = dict(x[0] for x in cert.get('issuer', []))
+                return {
+                    "valid": True, 
+                    "issuer": issuer_dict.get('commonName', 'Unknown')
+                }
+    except Exception as e:
+        return {"valid": False, "error": f"SSL Failed: {str(e)}"}
 
 def check_reputation(url):
     score = 0
@@ -60,15 +77,23 @@ def check_reputation(url):
     if URLHAUS_KEY:
         try:
             r = requests.post("https://urlhaus-api.abuse.ch/v1/url/", 
-                              data={'url': url}, headers={'Auth-Key': URLHAUS_KEY}, timeout=3)
-            if r.status_code == 200 and r.json().get("query_status") == "ok":
-                score = 100
-                sources["URLHaus"] = "MALICIOSO"
-        except: pass
+                              data={'url': url}, 
+                              headers={'Auth-Key': URLHAUS_KEY}, 
+                              timeout=5)
+            if r.status_code == 200:
+                result = r.json()
+                if result.get("query_status") == "ok":
+                    score = 100
+                    sources["URLHaus"] = "MALICIOSO"
+        except Exception as e:
+            print(f"Erro URLHaus: {e}")
 
     return {"score": score, "sources": sources}
 
 def run_heuristics(url):
+    if not url:
+        return {"score": 0, "flags": [], "entropy": 0}
+    
     parsed = urlparse(url)
     hostname = parsed.hostname or ""
     score = 0

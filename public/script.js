@@ -16,15 +16,25 @@ async function analyzeUrl() {
     modal.style.display = 'none';
 
     try {
+        console.log('Enviando requisição para:', '/api/analyze');
+        console.log('URL a ser analisada:', url);
+        
         const res = await fetch('/api/analyze', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({url})
         });
         
-        if (!res.ok) throw new Error('Erro na requisição');
+        console.log('Status da resposta:', res.status);
+        
+        if (!res.ok) {
+            const errorText = await res.text();
+            console.error('Erro da API:', errorText);
+            throw new Error(`Erro ${res.status}: ${errorText}`);
+        }
         
         currentData = await res.json();
+        console.log('Dados recebidos:', currentData);
 
         loading.style.display = 'none';
         modal.style.display = 'block';
@@ -39,8 +49,8 @@ async function analyzeUrl() {
         verdictEl.style.color = score > 50 ? "var(--danger)" : "var(--safe)";
 
     } catch (e) {
-        console.error(e);
-        alert("Erro na análise: " + e.message);
+        console.error('Erro completo:', e);
+        alert("Erro na análise: " + e.message + "\n\nAbra o console (F12) para mais detalhes.");
         overlay.classList.remove('active');
     }
 }
@@ -117,5 +127,27 @@ async function downloadPDF() {
         a.click();
     } catch (e) {
         alert('Erro ao gerar PDF: ' + e.message);
+    }
+}
+
+// FUNÇÃO DE TESTE - ADICIONE NO FINAL DO ARQUIVO
+async function testAPI() {
+    try {
+        console.log('Testando API...');
+        
+        // Testa endpoint de health
+        const healthRes = await fetch('/api/health');
+        const healthData = await healthRes.json();
+        console.log('Health check:', healthData);
+        
+        // Testa endpoint raiz
+        const rootRes = await fetch('/api/');
+        const rootData = await rootRes.json();
+        console.log('Root endpoint:', rootData);
+        
+        alert('API está online! Verifique o console (F12) para detalhes.');
+    } catch (e) {
+        console.error('Erro ao testar API:', e);
+        alert('ERRO: API não está respondendo. Detalhes no console (F12).');
     }
 }

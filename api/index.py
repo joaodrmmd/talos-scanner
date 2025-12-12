@@ -1,8 +1,9 @@
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from urllib.parse import urlparse  # ← FALTAVA ESTE IMPORT
+from urllib.parse import urlparse
 from api.services import scanner, sandbox, report
+import traceback
 
 app = FastAPI()
 
@@ -18,40 +19,96 @@ class URLRequest(BaseModel):
 
 @app.post("/analyze")
 async def analyze_url(req: URLRequest):
-    url = req.url.strip()
-    if not url.startswith("http"): url = "http://" + url
+    try:
+        url = req.url.strip()
+        if not url.startswith("http"):
+            url = "https://" + url  # Mudei para https por padrão
+        
+        parsed = urlparse(url)
+        hostname = parsed.hostname
+        
+        # Validação básica
+        if not hostname:
+            raise HTTPException(status_code=400, detail="URL inválida - hostname não encontrado")
+        
+        # Lógica Local com tratamento de erro individual
+        try:
+            infra = scanner.get_infrastructure(hostname)
+        except Exception as e:
+            print(f"Erro em get_infrastructure: {e}")
+            infra = {"dns": {}, "whois": {}, "geo": {}}
+        
+        try:
+            ssl_data = scanner.check_ssl(hostname)
+        except Exception as e:
+            print(f"Erro em check_ssl: {e}")
+            ssl_data = {"valid": False, "error": str(e)}
+        
+        try:
+            heuristics = scanner.run_heuristics(url)
+        except Exception as e:
+            print(f"Erro em run_heuristics: {e}")
+            heuristics = {"score": 0, "flags": [], "entropy": 0}
+        
+        try:
+            reputation = scanner.check_reputation(url)
+        except Exception as e:
+            print(f"Erro em check_reputation: {e}")
+            reputation = {"score": 0, "sources": {}}
+        
+        # Lógica Remota (Worker)
+        try:
+            sandbox_data = await sandbox.get_remote_screenshot(url)
+        except Exception as e:
+            print(f"Erro em get_remote_screenshot: {e}")
+            sandbox_data = {"status": "error", "error": str(e)}
+        
+        # Consolidação de Risco
+        risk_score = 0
+        risk_score = max(risk_score, reputation.get("score", 0))
+        risk_score += heuristics.get("score", 0)
+        if not ssl_data.get("valid"):
+            risk_score += 20
+        
+        final_score = min(risk_score, 100)
+        
+        result = {
+            "url": url,
+            "final": {
+                "score": final_score,
+                "verdict": "MALICIOUS" if final_score > 70 else "SUSPICIOUS" if final_score > 40 else "SAFE",
+                "reasons": heuristics.get("flags", []) + ([f"Reputação Ruim: {reputation.get('sources', {})}"] if reputation.get('score', 0) > 0 else [])
+            },
+            "infra": infra,
+            "ssl": ssl_data,
+            "sandbox": sandbox_data
+        }
+        return result
     
-    # Lógica Local
-    infra = scanner.get_infrastructure(urlparse(url).hostname)
-    ssl_data = scanner.check_ssl(urlparse(url).hostname)
-    heuristics = scanner.run_heuristics(url)
-    reputation = scanner.check_reputation(url)
-    
-    # Lógica Remota (Worker)
-    sandbox_data = await sandbox.get_remote_screenshot(url)
-    
-    # Consolidação de Risco
-    risk_score = 0
-    risk_score = max(risk_score, reputation["score"])
-    risk_score += heuristics["score"]
-    if not ssl_data.get("valid"): risk_score += 20
-    
-    final_score = min(risk_score, 100)
-    
-    result = {
-        "url": url,
-        "final": {
-            "score": final_score,
-            "verdict": "MALICIOUS" if final_score > 70 else "SUSPICIOUS" if final_score > 40 else "SAFE",
-            "reasons": heuristics["flags"] + ([f"Reputação Ruim: {reputation['sources']}"] if reputation['score'] > 0 else [])
-        },
-        "infra": infra,
-        "ssl": ssl_data,
-        "sandbox": sandbox_data
-    }
-    return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"ERRO GERAL: {e}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
 
 @app.post("/report/pdf")
 async def get_pdf(data: dict):
-    pdf_bytes = report.generate_pdf(data)
-    return Response(content=bytes(pdf_bytes), media_type="application/pdf", headers={"Content-Disposition": "attachment; filename=report.pdf"})
+    try:
+        pdf_bytes = report.generate_pdf(data)
+        return Response(
+            content=bytes(pdf_bytes), 
+            media_type="application/pdf", 
+            headers={"Content-Disposition": "attachment; filename=report.pdf"}
+        )
+    except Exception as e:
+        print(f"Erro ao gerar PDF: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao gerar PDF: {str(e)}")
+
+@app.get("/")
+async def root():
+    return {"status": "API Online", "message": "Talos Security Scanner API"}
+
+@app.get("/health")
+async def health():
+    return {"status": "healthy"}
