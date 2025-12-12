@@ -1,20 +1,94 @@
-<div class="scan-overlay" id="scanOverlay">
-    
-    <div id="loadingState">
-        <div class="loader"></div>
-        <p style="margin-top: 20px; color: var(--text-muted); letter-spacing: 2px;">PROCESSANDO INTELLIGENCE...</p>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TALOS Security Scanner</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="hero">
+            <h1 class="logo">TALOS<span class="accent">SCAN</span></h1>
+            <p class="tagline">Advanced Threat Intelligence Platform</p>
+        </header>
+
+        <main class="scan-section">
+            <div class="input-group">
+                <input 
+                    type="text" 
+                    id="urlInput" 
+                    placeholder="Digite a URL para análise (ex: example.com)"
+                    onkeypress="if(event.key==='Enter') analyzeUrl()"
+                >
+                <button class="btn-primary" onclick="analyzeUrl()">
+                    INICIAR SCAN
+                </button>
+            </div>
+        </main>
+
+        <!-- ÁREA DE RESULTADOS -->
+        <section id="results-area" class="results-container">
+            <div class="results-header">
+                <h2>Relatório de Análise</h2>
+                <button class="btn-download" onclick="downloadPDF()">
+                    📄 EXPORTAR PDF
+                </button>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Score de Risco</h3>
+                    <div id="scoreDisplay" class="score-big">--</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Veredito</h3>
+                    <div id="verdictDisplay" class="verdict-text">---</div>
+                </div>
+            </div>
+
+            <div class="details-grid">
+                <div class="detail-card">
+                    <h3>🔍 Heurísticas</h3>
+                    <div id="heuristicsData">...</div>
+                </div>
+                <div class="detail-card">
+                    <h3>🔐 SSL/TLS</h3>
+                    <div id="sslData">...</div>
+                </div>
+                <div class="detail-card">
+                    <h3>🌐 Infraestrutura</h3>
+                    <div id="infraData">...</div>
+                </div>
+                <div class="detail-card">
+                    <h3>🖼️ Sandbox</h3>
+                    <div id="sandboxData">...</div>
+                </div>
+            </div>
+        </section>
     </div>
 
-    <div id="resultModal" class="quick-result-modal" style="display: none;">
-        <h3 style="margin-bottom: 1rem; color: #fff;">Análise Concluída</h3>
-        
-        <div id="modalScoreCircle" class="score-circle">--</div>
-        
-        <h2 id="modalVerdict" style="font-size: 1.5rem; margin-bottom: 0.5rem;">---</h2>
-        <p style="color: var(--text-muted); font-size: 0.9rem;">Verificamos DNS, SSL, Reputação e Sandbox.</p>
-        
-        <button class="btn-details-outline" onclick="closeModalAndShowDetails()">
-            VER RELATÓRIO COMPLETO
-        </button>
+    <!-- OVERLAY DE SCANNING -->
+    <div class="scan-overlay" id="scanOverlay">
+        <div id="loadingState">
+            <div class="loader"></div>
+            <p style="margin-top: 20px; color: var(--text-muted); letter-spacing: 2px;">PROCESSANDO INTELLIGENCE...</p>
+        </div>
+
+        <div id="resultModal" class="quick-result-modal" style="display: none;">
+            <h3 style="margin-bottom: 1rem; color: #fff;">Análise Concluída</h3>
+            
+            <div id="modalScoreCircle" class="score-circle">--</div>
+            
+            <h2 id="modalVerdict" style="font-size: 1.5rem; margin-bottom: 0.5rem;">---</h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Verificamos DNS, SSL, Reputação e Sandbox.</p>
+            
+            <button class="btn-details-outline" onclick="closeModalAndShowDetails()">
+                VER RELATÓRIO COMPLETO
+            </button>
+        </div>
     </div>
-</div>
+
+    <script src="script.js"></script>
+</body>
+</html>

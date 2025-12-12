@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from urllib.parse import urlparse  # ← FALTAVA ESTE IMPORT
 from api.services import scanner, sandbox, report
 
 app = FastAPI()
@@ -20,10 +21,6 @@ async def analyze_url(req: URLRequest):
     url = req.url.strip()
     if not url.startswith("http"): url = "http://" + url
     
-    # 1. Paralelismo: Chama sandbox (async) enquanto roda a lógica local
-    # Nota: Em Python puro, requests bloqueia, então rodamos sequencial aqui para simplicidade.
-    # Em produção real, usaríamos asyncio.gather
-    
     # Lógica Local
     infra = scanner.get_infrastructure(urlparse(url).hostname)
     ssl_data = scanner.check_ssl(urlparse(url).hostname)
@@ -33,7 +30,7 @@ async def analyze_url(req: URLRequest):
     # Lógica Remota (Worker)
     sandbox_data = await sandbox.get_remote_screenshot(url)
     
-    # Consolidação de Risco (Algoritmo Simplificado)
+    # Consolidação de Risco
     risk_score = 0
     risk_score = max(risk_score, reputation["score"])
     risk_score += heuristics["score"]

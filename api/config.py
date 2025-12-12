@@ -7,4 +7,4 @@ ABUSEIPDB_KEY = os.getenv("ABUSEIPDB_KEY", "7f6a94769acc0c48c15c1f4053c39803756c
 
 # URL do seu Space no Hugging Face (Substitua após fazer o deploy do Passo 1)
 # Exemplo: "https://SEU-USUARIO-talos-worker.hf.space/screenshot"
-SANDBOX_URL = os.getenv("SANDBOX_URL", "https://tlssecurity-scanpy1.hf.space/screenshot")
+SANDBOX_URL = os.getenv("SANDBOX_URL", "https://tlssecurity-scanpy1.hf.space/
