@@ -2,14 +2,26 @@ from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from urllib.parse import urlparse
-from api.services import scanner, sandbox, report
 import traceback
+import sys
+import os
 
-app = FastAPI()
+# Adiciona o diretório raiz ao path
+sys.path.insert(0, os.path.dirname(__file__))
+
+# Imports dos serviços
+try:
+    from services import scanner, sandbox, report
+except ImportError:
+    # Fallback para estrutura alternativa
+    from api.services import scanner, sandbox, report
+
+app = FastAPI(title="Talos Security Scanner API")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -17,17 +29,24 @@ app.add_middleware(
 class URLRequest(BaseModel):
     url: str
 
+@app.get("/")
+async def root():
+    return {"status": "API Online", "message": "Talos Security Scanner API", "version": "1.0"}
+
+@app.get("/health")
+async def health():
+    return {"status": "healthy", "service": "talos-api"}
+
 @app.post("/analyze")
 async def analyze_url(req: URLRequest):
     try:
         url = req.url.strip()
         if not url.startswith("http"):
-            url = "https://" + url  # Mudei para https por padrão
+            url = "https://" + url
         
         parsed = urlparse(url)
         hostname = parsed.hostname
         
-        # Validação básica
         if not hostname:
             raise HTTPException(status_code=400, detail="URL inválida - hostname não encontrado")
         
@@ -105,10 +124,5 @@ async def get_pdf(data: dict):
         print(f"Erro ao gerar PDF: {e}")
         raise HTTPException(status_code=500, detail=f"Erro ao gerar PDF: {str(e)}")
 
-@app.get("/")
-async def root():
-    return {"status": "API Online", "message": "Talos Security Scanner API"}
-
-@app.get("/health")
-async def health():
-    return {"status": "healthy"}
+# Handler para Vercel
+handler = app

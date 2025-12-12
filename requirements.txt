@@ -7,3 +7,31 @@ ipwhois
 fpdf
 httpx
 pydantic
+mangum
+```
+
+---
+
+## **ESTRUTURA FINAL DE PASTAS** (Deve ficar assim):
+```
+seu-projeto/
+├── api/
+│   ├── __init__.py
+│   ├── main.py          ← ARQUIVO PRINCIPAL (renomeie index.py)
+│   ├── config.py
+│   ├── services/
+│   │   ├── __init__.py
+│   │   ├── scanner.py
+│   │   ├── sandbox.py
+│   │   └── report.py
+│   └── utils/
+│       └── helpers.py
+├── public/
+│   ├── index.html
+│   ├── style.css
+│   └── script.js
+├── sandbox-worker/
+│   ├── Dockerfile
+│   └── app.py
+├── vercel.json
+└── requirements.txt
