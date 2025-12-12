@@ -6,17 +6,16 @@ import traceback
 import sys
 import os
 
-# Adiciona o diretório raiz ao path
-sys.path.insert(0, os.path.dirname(__file__))
+# Passo 1: Adiciona o diretório raiz do projeto ao path (necessário para "api.services")
+# Ele retrocede dois níveis: de main.py -> api/ -> raiz
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 # Imports dos serviços
-try:
-    from services import scanner, sandbox, report
-except ImportError:
-    # Fallback para estrutura alternativa
-    from api.services import scanner, sandbox, report
+# A importação correta, considerando a estrutura de pastas, é 'from api.services import ...'
+from api.services import scanner, sandbox, report
 
 app = FastAPI(title="Talos Security Scanner API")
+# ... (O restante do seu arquivo main.py segue inalterado)
 
 app.add_middleware(
     CORSMiddleware,
