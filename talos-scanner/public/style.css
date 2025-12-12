@@ -1,0 +1,67 @@
+/* --- OVERLAY DE SCANNING --- */
+.scan-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(5, 5, 10, 0.7);
+    backdrop-filter: blur(12px); /* O Efeito de Blur */
+    -webkit-backdrop-filter: blur(12px);
+    z-index: 999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+}
+
+.scan-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+/* --- POPUP DE RESULTADO RÁPIDO --- */
+.quick-result-modal {
+    background: rgba(10, 10, 15, 0.95);
+    border: 1px solid var(--primary);
+    box-shadow: 0 0 50px rgba(0, 242, 255, 0.15);
+    padding: 2.5rem;
+    border-radius: 24px;
+    text-align: center;
+    max-width: 450px;
+    transform: scale(0.9);
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.scan-overlay.active .quick-result-modal {
+    transform: scale(1);
+}
+
+.score-circle {
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    border: 8px solid #333;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1.5rem auto;
+    font-size: 2.5rem; font-weight: 800;
+    position: relative;
+}
+
+.score-circle.safe { border-color: var(--safe); color: var(--safe); box-shadow: 0 0 20px rgba(0,255,136,0.3); }
+.score-circle.danger { border-color: var(--danger); color: var(--danger); box-shadow: 0 0 20px rgba(255,0,85,0.3); }
+
+.btn-details-outline {
+    margin-top: 1.5rem;
+    padding: 12px 30px;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    border-radius: 50px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: 0.3s;
+}
+.btn-details-outline:hover {
+    border-color: var(--primary);
+    background: rgba(0, 242, 255, 0.1);
+}

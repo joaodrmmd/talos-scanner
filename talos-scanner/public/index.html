@@ -1,0 +1,20 @@
+<div class="scan-overlay" id="scanOverlay">
+    
+    <div id="loadingState">
+        <div class="loader"></div>
+        <p style="margin-top: 20px; color: var(--text-muted); letter-spacing: 2px;">PROCESSANDO INTELLIGENCE...</p>
+    </div>
+
+    <div id="resultModal" class="quick-result-modal" style="display: none;">
+        <h3 style="margin-bottom: 1rem; color: #fff;">Análise Concluída</h3>
+        
+        <div id="modalScoreCircle" class="score-circle">--</div>
+        
+        <h2 id="modalVerdict" style="font-size: 1.5rem; margin-bottom: 0.5rem;">---</h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">Verificamos DNS, SSL, Reputação e Sandbox.</p>
+        
+        <button class="btn-details-outline" onclick="closeModalAndShowDetails()">
+            VER RELATÓRIO COMPLETO
+        </button>
+    </div>
+</div>

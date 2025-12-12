@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+requests
+dnspython
+python-whois
+ipwhois
+fpdf
+httpx
+pydantic
