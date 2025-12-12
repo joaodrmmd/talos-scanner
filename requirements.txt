@@ -8,12 +8,12 @@ fpdf
 httpx
 pydantic
 mangum
-```
+
 
 ---
 
 ## **ESTRUTURA FINAL DE PASTAS** (Deve ficar assim):
-```
+
 seu-projeto/
 ├── api/
 │   ├── __init__.py
